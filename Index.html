@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi OSIS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e90ff, #4caf50);
+      margin: 0; padding: 0;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: white; padding: 25px; border-radius: 15px;
+      width: 90%; max-width: 450px;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+    }
+    header { display: flex; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    header img { width: 55px; margin-right: 12px; }
+    header h1 { margin: 0; font-size: 18px; color: #0a4b91; }
+    header p { margin: 0; font-size: 13px; color: gray; }
+    h2 { text-align: center; color: #0a4b91; }
+    label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
+    input, select {
+      width: 100%; padding: 8px; margin-top: 5px;
+      border: 1px solid #ccc; border-radius: 8px;
+    }
+    button {
+      width: 100%; margin-top: 15px; padding: 10px;
+      border: none; border-radius: 8px; font-size: 15px; cursor: pointer;
+    }
+    #captureBtn { background: #1976d2; color: white; }
+    #submitBtn { background: #4caf50; color: white; }
+    footer { text-align: center; font-size: 12px; color: #000; margin-top: 25px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="https://i.ibb.co.com/XkjbNs5P/logo.png" alt="Logo OSIS">
+      <div>
+        <h1>OSIS SMAN 1 MANGUNJAYA</h1>
+        <p>Sistem Absensi Digital</p>
+      </div>
+    </header>
+
+    <form id="absensiForm">
+      <label>Nama Lengkap</label>
+      <small>Tulis nama dengan huruf depan kapital (contoh: Muammar Khadafi)</small>
+      <input type="text" id="nama" required oninput="capitalizeName(this)">
+
+      <label>Kelas</label>
+      <select id="kelas" required>
+        <option value="">-- Pilih Kelas --</option>
+        <!-- X -->
+        <option>X 1</option><option>X 2</option><option>X 3</option><option>X 4</option>
+        <option>X 5</option><option>X 6</option><option>X 7</option><option>X 8</option>
+        <option>X 9</option><option>X 10</option><option>X 11</option><option>X 12</option>
+        <!-- XI -->
+        <option>XI 1</option><option>XI 2</option><option>XI 3</option><option>XI 4</option>
+        <option>XI 5</option><option>XI 6</option><option>XI 7</option><option>XI 8</option>
+        <option>XI 9</option><option>XI 10</option><option>XI 11</option><option>XI 12</option>
+        <!-- XII MIPA -->
+        <option>XII MIPA 1</option><option>XII MIPA 2</option><option>XII MIPA 3</option>
+        <option>XII MIPA 4</option><option>XII MIPA 5</option><option>XII MIPA 6</option>
+        <!-- XII IPS -->
+        <option>XII IPS 1</option><option>XII IPS 2</option><option>XII IPS 3</option>
+        <option>XII IPS 4</option><option>XII IPS 5</option><option>XII IPS 6</option>
+      </select>
+
+      <label>Jenis Piket</label>
+      <select id="jenisPiket" required>
+        <option value="">-- Pilih Jenis Piket --</option>
+        <option value="Jaga Gerbang">Jaga Gerbang</option>
+        <option value="Pengaman Barisan Upacara">Pengaman Barisan Upcara</option>
+      </select>
+
+      <label>Keterangan</label>
+      <select id="keterangan" required onchange="toggleSelfie()">
+        <option value="">-- Pilih --</option>
+        <option value="Hadir">Hadir</option>
+        <option value="Izin">Izin</option>
+        <option value="Sakit">Sakit</option>
+      </select>
+
+      <div id="selfieSection">
+        <label>Foto Selfie</label>
+        <button type="button" id="captureBtn">📷 Ambil Selfie</button>
+        <video id="video" width="100%" autoplay style="margin-top:10px; border-radius:10px; transform: scaleX(-1);"></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <img id="preview" width="100%" style="margin-top:10px; border-radius:10px; display:none;">
+      </div>
+
+      <button type="submit" id="submitBtn">✅ Kirim Absensi</button>
+    </form>
+
+    <footer>
+      © SEKRETARIS OSIS CAKRAMANGGALA 2025 - Sistem Absensi Digital <br>
+    </footer>
+  </div>
+
+<script>
+  const scriptURL = "https://script.google.com/macros/s/AKfycbxaYDeNGLIyorVrl_wrRlujLH5Gz-sD_1auKFDC1bJSp5be_ukRAazFHEarHBnGaUeZOg/exec";
+
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const preview = document.getElementById("preview");
+  const selfieSection = document.getElementById("selfieSection");
+  const ctx = canvas.getContext("2d");
+  let selfie = "";
+
+  // Kamera
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => video.srcObject = stream)
+    .catch(err => console.log("Tidak bisa akses kamera: " + err));
+
+  // Ambil foto
+  document.getElementById("captureBtn").onclick = () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.save();
+    ctx.scale(-1, 1); // biar gak mirror
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+    selfie = canvas.toDataURL("image/png");
+    preview.src = selfie;
+    preview.style.display = "block";
+  };
+
+  // Tampilkan / sembunyikan selfie
+  function toggleSelfie() {
+    let ket = document.getElementById("keterangan").value;
+    if (ket === "Hadir") {
+      selfieSection.style.display = "block";
+    } else {
+      selfieSection.style.display = "none";
+      selfie = "";
+    }
+  }
+
+  function capitalizeName(input) {
+    input.value = input.value.replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  // Kirim form
+  document.getElementById("absensiForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const data = {
+      nama: document.getElementById("nama").value,
+      kelas: document.getElementById("kelas").value,
+      jenisPiket: document.getElementById("jenisPiket").value, // ✅ ditambahkan
+      keterangan: document.getElementById("keterangan").value,
+      foto: selfie
+    };
+    try {
+      const res = await fetch(scriptURL, {
+        method: "POST",
+        body: new URLSearchParams(data)
+      });
+      const result = await res.json();
+      alert("✅ " + result.message);
+      document.getElementById("absensiForm").reset();
+      preview.style.display = "none";
+    } catch (err) {
+      alert("❌ Gagal kirim: " + err);
+    }
+  };
+</script>
+</body>
+</html>
